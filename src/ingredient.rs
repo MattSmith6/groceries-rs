@@ -18,7 +18,7 @@ pub struct Ingredient {
     // The name of the ingredient: cream cheese, onion, canned tomatoes, italian sausage
     pub name: String,
 
-    // How the ingredient is prepared: melted, chopped, diced, whole etc.
+    // How the ingredient is prepared *by the chef*: melted, chopped, diced, whole etc.
     pub preparation: Option<String>,
 
 }
