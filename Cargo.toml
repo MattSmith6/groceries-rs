@@ -1,0 +1,11 @@
+[package]
+name = "groceries-rs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+derive_more = { version = "1.0.0", features = ["display"] }
+reqwest = { version = "0.12.12", features = ["blocking", "gzip"] }
+scraper = "0.22.0"
+serde_json = "1.0.135"
+thiserror = "2.0.10"
