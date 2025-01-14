@@ -1,36 +1,31 @@
 use serde_json::{Map, Value};
-use crate::site_scraper;
+use crate::scrapers::site_scraper;
 use crate::err::ScrapeError;
-use crate::recipe::ScrapedRecipe;
+use crate::recipes::ScrapedRecipe;
 
-pub fn scrape_recipe(website: &str) -> Result<ScrapedRecipe, ScrapeError> {
-    let html_content = match site_scraper::scrape_url(website) {
+pub fn scrape_recipe(recipe_url: String) -> Result<ScrapedRecipe, ScrapeError> {
+    let html_content = match site_scraper::scrape_url(recipe_url.as_str()) {
         Ok(html) => html,
-        Err(err) => return Err(ScrapeError::Reqwest(err))
+        Err(err) => return Err(ScrapeError::Reqwest(err.to_string()))
     };
     let document = scraper::Html::parse_document(&html_content);
 
     let ld_json_script = r#"script[type="application/ld+json"]"#;
     let selector = match scraper::Selector::parse(ld_json_script) {
         Ok(selector) => selector,
-        Err(err) => return Err(ScrapeError::Selector(err))
+        Err(err) => return Err(ScrapeError::Selector(err.to_string()))
     };
 
     let ld_json_contents = document.select(&selector).next();
     if ld_json_contents.is_none() {
-        return Err(ScrapeError::Generic("This site does not have a JSON LD compatible recipe."))
+        return Err(ScrapeError::Generic("This site does not have a JSON LD compatible recipes."))
     }
 
     let ld_json_html = ld_json_contents.unwrap().inner_html();
     let ld_json_node = match serde_json::from_str(&ld_json_html) {
         Ok(ld_json_node) => ld_json_node,
-        Err(err) => return Err(ScrapeError::Json(err))
+        Err(err) => return Err(ScrapeError::Json(err.to_string()))
     };
-
-    dbg!("{}", match serde_json::to_string_pretty(&ld_json_node) {
-        Ok(json) => json,
-        Err(err) => return Err(ScrapeError::Json(err))
-    });
 
     let recipe_node = find_recipe_node(&ld_json_node);
 
@@ -42,21 +37,16 @@ pub fn scrape_recipe(website: &str) -> Result<ScrapedRecipe, ScrapeError> {
     let nutrition_object = find_nutrition_object(recipe_node);
 
     Ok(ScrapedRecipe {
-        name: find_recipe_name(recipe_node),
-        servings: find_nutrition_field(nutrition_object, "servingSize"),
-        calories: find_nutrition_field(nutrition_object, "calories"),
-        carbs: find_nutrition_field(nutrition_object, "carbohydrateContent"),
-        fats: find_nutrition_field(nutrition_object, "fatContent"),
-        protein: find_nutrition_field(nutrition_object, "proteinContent"),
+        name: find_field(Some(recipe_node), "name").to_owned(),
+        url: recipe_url,
+        recipe_yield: find_field(Some(recipe_node), "recipeYield"),
+        serving: find_field(nutrition_object, "servingSize"),
+        calories: find_field(nutrition_object, "calories"),
+        carbs: find_field(nutrition_object, "carbohydrateContent"),
+        fats: find_field(nutrition_object, "fatContent"),
+        protein: find_field(nutrition_object, "proteinContent"),
         ingredients: find_recipe_ingredients(recipe_node),
     })
-}
-
-fn find_recipe_name(recipe_node: &Map<String, Value>) -> Option<String> {
-    recipe_node.get("name")
-        .map(|val| val.as_str())
-        .flatten()
-        .map(|name| name.to_string())
 }
 
 fn find_nutrition_object(recipe_node: &Map<String, Value>) -> Option<&Map<String, Value>> {
@@ -69,13 +59,11 @@ fn find_nutrition_object(recipe_node: &Map<String, Value>) -> Option<&Map<String
     nutrition_object.unwrap().as_object()
 }
 
-fn find_nutrition_field(nutrition_object: Option<&Map<String, Value>>, key: &str)
-    -> Option<String> {
+fn find_field(json_object: Option<&Map<String, Value>>, key: &str) -> Option<String> {
     let key = key.to_string();
-    nutrition_object?.get(&key)
-        .map(|val| val.as_str())
-        .flatten()
-        .map(|s| s.to_string())
+    json_object?.get(&key)
+        .and_then(move |val| val.as_str())
+        .map(|name| name.to_string())
 }
 
 fn find_recipe_ingredients(recipe_node: &Map<String, Value>) -> Option<Vec<String>> {
@@ -128,9 +116,9 @@ fn is_recipe_node(node: &Value) -> bool {
                 return true
             }
 
-            let expected_array_value = &Value::String(expected_type.to_string());
+            let expected_array_value = Value::String(expected_type.to_string());
             node_type.as_array()
-                .is_some_and(|array| array.contains(expected_array_value))
+                .is_some_and(|array| array.contains(&expected_array_value))
         }
         _ => false,
     }

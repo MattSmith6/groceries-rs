@@ -1,11 +1,13 @@
-#[derive(Debug)]
-pub enum ScrapeError<'a> {
+use derive_more::Display;
 
-    Selector(scraper::error::SelectorErrorKind<'a>),
+#[derive(Debug, Clone, Display)]
+pub enum ScrapeError {
 
-    Reqwest(reqwest::Error),
+    Selector(String),
 
-    Json(serde_json::Error),
+    Reqwest(String),
+
+    Json(String),
 
     Generic(&'static str),
 

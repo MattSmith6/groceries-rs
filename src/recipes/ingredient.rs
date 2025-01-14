@@ -2,7 +2,7 @@ use std::ops::Add;
 
 pub struct Ingredient {
 
-    // The quantity of this ingredient the recipe calls for
+    // The quantity of this ingredient the recipes calls for
     pub quantity: u8,
 
     // The size of the ingredient: *heaping* (tablespoon), *large* (onion), *6 oz* (canned chiles)
@@ -25,12 +25,22 @@ pub struct Ingredient {
 
 impl Ingredient {
 
+    fn quote_string(optional: &Option<String>) -> Option<String> {
+        let mut quoted_string = "\"".to_owned();
+
+        optional.clone().map(|string| {
+            quoted_string.push_str(string.as_str());
+            quoted_string.push('"');
+            quoted_string
+        })
+    }
+
     pub fn to_search_strings(&self) -> Vec<String> {
         let mut search_strings = Vec::new();
         let optional_search_parameters = vec![
-            self.unit.clone(),
-            self.descriptor.clone(),
-            self.size.clone(),
+            Self::quote_string(&self.unit),
+            Self::quote_string(&self.descriptor),
+            Self::quote_string(&self.size),
         ];
 
         for optional_search_parameter in optional_search_parameters {

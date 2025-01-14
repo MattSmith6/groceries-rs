@@ -12,5 +12,5 @@ pub fn scrape_url(url: &str) -> Result<String, reqwest::Error> {
         .header("Cache-Control", "no-cache")
         .send()?;
 
-    Ok(request.text().unwrap())
+    request.text()
 }

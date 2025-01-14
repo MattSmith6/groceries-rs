@@ -1,4 +1,4 @@
-pub struct ShoppingItem {
+pub struct GroceryItem {
 
     pub name: String,
 
@@ -12,10 +12,10 @@ pub struct ShoppingItem {
 
 }
 
-impl ShoppingItem {
+impl GroceryItem {
 
     pub fn new(name: String, quantity: u8, aisle: Option<String>, price_per_unit: f32) -> Self {
-        ShoppingItem {
+        GroceryItem {
             name: name,
             quantity: quantity,
             aisle: aisle,

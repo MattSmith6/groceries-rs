@@ -1,8 +1,8 @@
 use scraper::{Html, Selector};
-use crate::ingredient::Ingredient;
-use crate::shoppingitem::ShoppingItem;
-use crate::site_scraper;
-use crate::traits::ShoppingListCreator;
+use crate::recipes::Ingredient;
+use crate::groceries::GroceryItem;
+use crate::scrapers::grocery_list_scraper::GroceryListScraper;
+use crate::scrapers::site_scraper;
 
 pub struct WalmartScraper;
 
@@ -29,15 +29,15 @@ impl WalmartScraper {
             return aisle_html.select(&aisle_span).next().map(|aisle| aisle.inner_html())
         }
 
-        todo!("Set the store location in the cookies for aisle information to be present.");
         None
+        // Set the store location in the cookies for aisle information to be present.
     }
 
 }
 
-impl ShoppingListCreator for WalmartScraper {
+impl GroceryListScraper for WalmartScraper {
 
-    fn scrape_item_by_query(&self, query: String) -> Option<ShoppingItem> {
+    fn scrape_item_by_query(&self, query: String) -> Option<GroceryItem> {
         let url = format!("https://www.walmart.com/search?q={}", query);
         let html = match site_scraper::scrape_url(&url) {
             Ok(html) => html,
@@ -103,8 +103,6 @@ impl ShoppingListCreator for WalmartScraper {
             let item_link = item_link_elem.value().attr("href").unwrap();
 
             let aisle = Self::scrape_aisle_by_product_page(item_link.to_string());
-
-
         }
 
         None
@@ -120,14 +118,16 @@ impl ShoppingListCreator for WalmartScraper {
 
 }
 
+#[cfg(test)]
 mod test {
-    use crate::walmart_scraper::WalmartScraper;
+    use crate::scrapers::walmart_scraper::WalmartScraper;
 
     #[test]
     fn scrapes_aisle_correctly() {
-        assert_eq!(Some("Aisle A1".to_string()),
+        assert_eq!(
+            Some("Aisle A1".to_string()),
             WalmartScraper::scrape_aisle_by_product_page(
-                "https://www.walmart.com/ip/Fresh-Celery-Hearts-Each/10402651?classType=REGULAR&athbdg=L1200&from=/search".to_string()
+                "https://www.walmart.com/ip/Fresh-Celery-Hearts-Each/10402651".to_string()
             )
         )
     }
