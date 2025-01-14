@@ -38,19 +38,18 @@ enum Message {
 
 }
 
-fn update(value: &mut State, message: Message) -> Task<Message> {
+fn update(state: &mut State, message: Message) -> Task<Message> {
     match message {
         Message::RecipeUrlChanged(url) => {
-            value.recipe_url = url.to_string();
+            state.recipe_url = url.to_string();
             Task::none()
         }
         Message::StartScrape => {
-            let recipe_url = value.recipe_url.clone();
+            let recipe_url = state.recipe_url.clone();
 
-            value.recipe_url.clear();
-            value.currently_scraping = true;
-            value.scraped_recipe = None;
-            value.scrape_error = None;
+            state.currently_scraping = true;
+            state.scraped_recipe = None;
+            state.scrape_error = None;
 
             Task::perform(
                 async {
@@ -62,37 +61,39 @@ fn update(value: &mut State, message: Message) -> Task<Message> {
             ).chain(Task::done(Message::EndScrape))
         }
         Message::EndScrape => {
-            value.currently_scraping = false;
+            state.recipe_url.clear();
+            state.currently_scraping = false;
+
             Task::none()
         }
         Message::ScrapeSuccess(scraped_recipe) => {
-            value.scraped_recipe = Some(scraped_recipe);
+            state.scraped_recipe = Some(scraped_recipe);
             Task::none()
         }
         Message::ScrapeError(scraped_error) => {
-            value.scrape_error = Some(scraped_error);
+            state.scrape_error = Some(scraped_error);
             Task::none()
         }
     }
 }
 
-fn view(value: &State) -> Element<'_, Message> {
-    let mut button = button("Scrape Recipe");
-    if !value.currently_scraping && !value.recipe_url.is_empty() {
-        button = button.on_press_maybe(Some(Message::StartScrape));
-    }
+fn view(state: &State) -> Element<'_, Message> {
+    let is_not_scraping = !state.currently_scraping;
+    let can_scrape = is_not_scraping && !state.recipe_url.is_empty();
 
     let scrape_recipe_row = row![
         text("Scrape a website:").center(),
         Space::with_width(10),
-        text_input("Enter recipe URL", &value.recipe_url)
-            .on_input(|string| Message::RecipeUrlChanged(string))
-            .on_submit(Message::StartScrape),
+        text_input("Enter recipe URL", &state.recipe_url)
+            .on_input_maybe(is_not_scraping.then(|| {
+                |string| Message::RecipeUrlChanged(string)
+            }))
+            .on_submit_maybe(can_scrape.then(|| Message::StartScrape)),
         Space::with_width(10),
-        button,
+        button("Scrape Recipe").on_press_maybe(can_scrape.then(|| Message::StartScrape)),
     ];
 
-    let scrape_error = text(value.scrape_error.as_ref()
+    let scrape_error = text(state.scrape_error.as_ref()
         .map_or(
             String::new(),
             |error| error.to_string())
@@ -100,7 +101,7 @@ fn view(value: &State) -> Element<'_, Message> {
         .color(Color::from_rgba(0.95, 0.05, 0.05, 0.9))
         .center();
 
-    let recipe_text = text(value.scraped_recipe.as_ref()
+    let recipe_text = text(state.scraped_recipe.as_ref()
         .map_or(String::new(), |recipe| recipe.to_string()));
 
     scrollable(
