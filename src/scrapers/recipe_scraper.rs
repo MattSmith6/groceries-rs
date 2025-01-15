@@ -18,7 +18,7 @@ pub fn scrape_recipe(recipe_url: String) -> Result<ScrapedRecipe, ScrapeError> {
 
     let ld_json_contents = document.select(&selector).next();
     if ld_json_contents.is_none() {
-        return Err(ScrapeError::Generic("This site does not have a JSON LD compatible recipes."))
+        return Err(ScrapeError::Generic("This site does not have a JSON LD compatible recipe."))
     }
 
     let ld_json_html = ld_json_contents.unwrap().inner_html();
@@ -39,8 +39,9 @@ pub fn scrape_recipe(recipe_url: String) -> Result<ScrapedRecipe, ScrapeError> {
     Ok(ScrapedRecipe {
         name: find_field(Some(recipe_node), "name").to_owned(),
         url: recipe_url,
-        recipe_yield: find_field(Some(recipe_node), "recipeYield"),
-        serving: find_field(nutrition_object, "servingSize"),
+        recipe_yield: find_field(Some(recipe_node), "recipeYield")
+            .or(find_field(Some(recipe_node), "yield")),
+        servings: find_field(nutrition_object, "servingSize"),
         calories: find_field(nutrition_object, "calories"),
         carbs: find_field(nutrition_object, "carbohydrateContent"),
         fats: find_field(nutrition_object, "fatContent"),
@@ -62,8 +63,8 @@ fn find_nutrition_object(recipe_node: &Map<String, Value>) -> Option<&Map<String
 fn find_field(json_object: Option<&Map<String, Value>>, key: &str) -> Option<String> {
     let key = key.to_string();
     json_object?.get(&key)
-        .and_then(move |val| val.as_str())
-        .map(|name| name.to_string())
+        .and_then(|val| val.as_str())
+        .map(|name| unescape_html_chars(name.to_string()))
 }
 
 fn find_recipe_ingredients(recipe_node: &Map<String, Value>) -> Option<Vec<String>> {
@@ -77,10 +78,20 @@ fn find_recipe_ingredients(recipe_node: &Map<String, Value>) -> Option<Vec<Strin
     let mut ingredient_vec = Vec::new();
 
     for ingredient in recipe_ingredients {
-        ingredient_vec.push(ingredient.as_str().unwrap().to_string());
+        ingredient_vec.push(unescape_html_chars(ingredient.as_str().unwrap().to_string()));
     }
 
     Some(ingredient_vec)
+}
+
+fn unescape_html_chars(input: String) -> String {
+    /*
+      Some text in the JSON LD has been escaped for HTML purposes (ex. &quot; for " char).
+      For some sites, the escaped HTML has been escaped a second time (ex. &amp;quot; for " char).
+      To get the most accurate text for all sites, we can unescape twice to fix the issue.
+     */
+    let first_pass = htmlize::unescape(input).to_string();
+    htmlize::unescape(first_pass).to_string()
 }
 
 fn find_recipe_node(node: &Value) -> Option<&Value> {

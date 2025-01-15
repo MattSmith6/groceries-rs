@@ -5,8 +5,9 @@ edition = "2021"
 
 [dependencies]
 derive_more = { version = "1.0.0", features = ["display"] }
-iced = "0.13.1"
+htmlize = { version = "1.0.5", features = ["unescape"] }
+iced = { version = "0.13.1", features = ["debug"] }
+regex = "1.11.1"
 reqwest = { version = "0.12.12", features = ["blocking", "gzip"] }
 scraper = "0.22.0"
 serde_json = "1.0.135"
-thiserror = "2.0.10"

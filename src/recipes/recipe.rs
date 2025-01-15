@@ -9,14 +9,14 @@ use crate::recipes::Ingredient;
     Source: {}\n\
     \n\
     Yields {:?}\n\
-    Serving size: {:?}\n\
+    Number of servings: {:?}\n\
     \n\
     {:?} calories\n\
     {:?} carbs\n\
     {:?} fats\n\
     {:?} protein\n\
     \n\
-    Ingredients: {:#?}", name, url, recipe_yield, serving, calories, carbs, fats, protein, ingredients)]
+    Ingredients: {:#?}", name, url, recipe_yield, servings, calories, carbs, fats, protein, ingredients)]
 pub struct ScrapedRecipe {
 
     pub name: Option<String>,
@@ -25,7 +25,7 @@ pub struct ScrapedRecipe {
 
     pub recipe_yield: Option<String>,
 
-    pub serving: Option<String>,
+    pub servings: Option<String>,
 
     pub calories: Option<String>,
 
@@ -43,15 +43,19 @@ pub struct Recipe {
 
     pub name: String,
 
+    pub source: Option<String>,
+
+    pub recipe_yield: String,
+
     pub servings: u8,
 
-    pub calories: u16,
+    pub calories: Option<u16>,
 
-    pub carbs: u8,
+    pub carbs: Option<f32>,
 
-    pub fats: u8,
+    pub fats: Option<f32>,
 
-    pub protein: u8,
+    pub protein: Option<f32>,
 
     pub ingredients: Vec<Ingredient>,
 
